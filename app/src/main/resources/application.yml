@@ -64,7 +64,15 @@ spring:
       enabled: true
       max-file-size: 50MB  # 支持知识库上传（简历限制在业务层检查）
       max-request-size: 50MB
-  
+
+  # Spring Data Redis Repository 开关
+  # 本项目无任何 Redis Repository（无 @RedisHash / RedisRepository，日志确认 Found 0 Redis repository interfaces），
+  # 关闭后启动时不再对每个 Repository 接口做 JPA/Redis 归属判断，可省约 20-25s 启动时间。
+  data:
+    redis:
+      repositories:
+        enabled: false
+
 
   # Redisson配置 (使用 spring.redis.redisson，参考官方文档)
   redis:
@@ -111,7 +119,8 @@ app:
       skills-root: ${APP_AI_AGENT_UTILS_SKILLS_ROOT:classpath:skills}
     providers:
       dashscope:
-        base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+        # Business-space API key (sk-ws-...) requires its dedicated OpenAI-compatible endpoint.
+        base-url: https://llm-eqloxn1fslgz40zc.cn-beijing.maas.aliyuncs.com/compatible-mode/v1
         api-key: ${AI_BAILIAN_API_KEY}
         model: ${AI_MODEL:qwen3.5-flash}
         embedding-model: text-embedding-v3

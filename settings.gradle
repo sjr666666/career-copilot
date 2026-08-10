@@ -16,7 +16,8 @@ pluginManagement {
 
 plugins {
     // Apply the foojay-resolver plugin to allow automatic download of JDKs
-    id 'org.gradle.toolchains.foojay-resolver-convention' version '0.8.0'
+    // 1.0.0 移除了对 JvmVendorSpec.IBM_SEMERU 的引用，兼容 Gradle 9.x
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
 }
 
 rootProject.name = 'interview-guide'

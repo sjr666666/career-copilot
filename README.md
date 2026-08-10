@@ -1,6 +1,6 @@
 <div align="center">
 
-**智能 AI 面试官平台** - 基于大语言模型的简历分析、模拟面试和 RAG 知识库系统
+**CareerCopilot：面向程序员的 AI 求职与面试助手** - 基于大语言模型的简历分析、JD 匹配、模拟面试和 RAG 知识库系统
 
 [![Java](https://img.shields.io/badge/Java-25-orange?logo=openjdk)](https://openjdk.org/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1-green?logo=springboot)](https://spring.io/projects/spring-boot)
@@ -16,19 +16,13 @@
 
 ## 项目介绍
 
-InterviewGuide 是一个集成了简历分析、模拟面试（文字 + 语音）、面试安排、知识库管理、知识库题库面试和多模型配置的智能面试辅助平台。系统利用大语言模型（LLM）、向量数据库、Redis Stream 异步任务和实时语音技术，为求职者、HR 和培训机构提供智能化的简历评估、面试练习、知识库问答和面试日程管理能力。
+CareerCopilot 是一个集成了简历分析（含版本迭代与对比）、JD 匹配分析、模拟面试（文字 + 语音）、面试安排、知识库管理、知识库题库面试和多模型配置的智能面试辅助平台。系统利用大语言模型（LLM）、向量数据库、Redis Stream 异步任务和实时语音技术，为求职者、HR 和培训机构提供智能化的简历评估、JD 匹配度检测、面试练习、知识库问答和面试日程管理能力。
+
+本项目承诺**完整功能免费开源**，无付费解锁、无隐藏限制。
 
 ## 系统架构
 
 ![系统架构图](https://oss.javaguide.cn/xingqiu/pratical-project/interview-guide/interview-guide-architecture-diagram.png)
-
-## 配套教程
-
-本项目承诺**完整功能免费开源**，也不会做所谓的 Pro 版或“付费解锁核心功能”之类的设计。
-
-如果你想学习这个项目，或者希望把它作为个人项目经历 / 毕设选题，我也整理了一套相对细致的教程：从基础设施搭建、核心业务实现，到最后如何在面试中讲清楚思路与亮点，尽量把容易卡住的地方讲透。
-
-如果你确实需要更系统的辅导，可以点这里了解详情（**教程为付费内容**，主要是想覆盖一些时间成本，望理解，感谢支持）：[《SpringAI 智能面试平台+RAG 知识库》](https://javaguide.cn/zhuanlan/interview-guide.html)。
 
 ## 技术栈
 
@@ -41,13 +35,14 @@ InterviewGuide 是一个集成了简历分析、模拟面试（文字 + 语音�
 | Spring AI             | 2.0.0 | AI 集成框架、OpenAI 兼容模型接入 |
 | Spring AI Agent Utils | 0.10.0 | Skill 资源加载、Advisor 能力扩展 |
 | PostgreSQL + pgvector | 14+   | 关系数据库 + 向量存储（Compose 默认 PG16） |
-| Redis + Redisson      | 6+ / 4.0.0 | 缓存 + 消息队列（Stream） |
+| Redis + Redisson      | 7 / 4.0.0 | 缓存 + 消息队列（Stream），Compose 默认 Redis 7 |
 | Apache Tika           | 2.9.2 | 文档解析                      |
 | iText 8               | 8.0.5 | PDF 导出                      |
 | MapStruct             | 1.6.3 | 对象映射                      |
 | SpringDoc OpenAPI     | 3.0.2 | API 接口文档                  |
 | DashScope SDK         | 2.22.7 | 语音识别/合成（Qwen3 ASR/TTS）|
 | AWS S3 SDK            | 2.29.51 | S3 兼容对象存储（MinIO/RustFS）|
+| Flyway                | -     | 数据库 schema 版本迁移        |
 | WebSocket             | -     | 语音面试实时双向通信          |
 | Gradle                | 9.6.1 | 构建工具                      |
 
@@ -73,6 +68,7 @@ InterviewGuide 是一个集成了简历分析、模拟面试（文字 + 语音�
 | Lucide React      | 0.468 | 图标库         |
 | React Big Calendar| 1.19  | 面试日历组件   |
 | React Virtuoso    | 4.18  | RAG 聊天虚拟列表 |
+| onnxruntime-web   | 1.24  | 客户端本地 VAD（Silero，语音面试说话检测） |
 | pnpm              | 10.26 | 前端包管理器   |
 
 ## 功能特性
@@ -82,11 +78,18 @@ InterviewGuide 是一个集成了简历分析、模拟面试（文字 + 语音�
 - **多格式解析**：支持 PDF、DOCX、DOC、TXT 等多种简历格式。
 - **异步处理流**：基于 Redis Stream 实现异步简历分析，支持实时查看处理进度（待分析/分析中/已完成/失败）。
 - **稳定性保障**：内置分析失败自动重试机制（最多 3 次）与基于内容哈希的重复检测。
+- **版本迭代与对比**：支持上传优化后的新版本，按版本链（v1、v2…）切换查看；并排对比任意两个版本的 AI 分析评分（总分 + 五维），标注差值，直观验证简历优化效果。
 - **分析报告导出**：支持将 AI 分析结果一键导出为结构化的 PDF 简历分析报告。
+
+### JD 匹配分析模块
+
+- **匹配度检测**：选择一份简历并粘贴目标岗位 JD，AI 输出匹配总分与多维度评分。
+- **差距分析与优化建议**：逐项指出简历与 JD 的差距，并给出针对性的简历优化建议。
+- **历史记录管理**：匹配记录持久化保存，支持列表查看、详情回看与删除。
 
 ### 模拟面试模块
 
-- **Skill 驱动出题**：内置 10+ 面试方向（Java 后端、阿里/字节/腾讯专项、前端、Python、算法、系统设计、测开、AI Agent 等），每个方向由 `SKILL.md` 定义考察范围、难度分布和参考知识库。
+- **Skill 驱动出题**：内置 10 个面试方向（Java 后端、阿里/字节/腾讯专项、前端、Python、算法、系统设计、测开、AI Agent 等），每个方向由 `SKILL.md` 定义考察范围、难度分布和参考知识库。
 - **历史题目去重**：出题时自动排除已有会话中问过的题目，避免重复考察。
 - **面试阶段时长联动**：总时长滑块拖动后，各阶段（自我介绍、技术考察、项目深挖、反问环节）按时比自动分配。
 - **智能追问流**：支持配置多轮智能追问（默认 1 条），模拟多轮问答场景。
@@ -106,7 +109,7 @@ InterviewGuide 是一个集成了简历分析、模拟面试（文字 + 语音�
 实时语音对话面试，WebSocket + 千问3 语音模型（ASR/TTS/LLM 统一 API Key）：
 
 - **实时流式对话**：句子级并发 TTS，边生成边合成边播放，首包延迟 200ms
-- **服务端 VAD**：自动断句，实时字幕（含中间结果）
+- **双端 VAD 断句**：客户端本地 VAD（Silero，onnxruntime-web）检测说话自动开始/结束录音；服务端 ASR 句间静音分段断句，实时字幕（含中间结果）
 - **回声防护 + 手动提交**：避免 AI 语音被误录入
 - **多轮上下文记忆 + 暂停/恢复**：超时自动暂停
 - **Micrometer 埋点**：TTS/ASR 延迟、会话时长等指标
@@ -148,7 +151,7 @@ InterviewGuide 是一个集成了简历分析、模拟面试（文字 + 语音�
 - [x] 模拟面试增加追问功能
 - [x] 语音面试功能（基于 Qwen3 实时语音模型）
 - [x] 面试安排管理（智能解析 + 日历视图）
-- [x] Skill 驱动出题（10+ 面试方向 + 参考知识库）
+- [x] Skill 驱动出题（10 个面试方向 + 参考知识库）
 - [x] 统一面试评估架构（文字/语音共用评估引擎）
 - [x] 面试历史题目去重
 - [x] 面试中心页（整合文字/语音入口）
@@ -158,11 +161,15 @@ InterviewGuide 是一个集成了简历分析、模拟面试（文字 + 语音�
 - [x] RAG 聊天会话管理 + 虚拟列表优化
 - [x] 可重复注解 API 限流（Global/IP/User 维度）
 - [x] 打通知识库题库与模拟面试（异步出题、严格容量校验、统一评估与记录）
+- [x] 简历版本迭代与评分对比
+- [x] JD 匹配分析（匹配度打分 + 差距分析 + 优化建议）
 - [ ] 语音面试接入 WebRTC 降低延迟
 - [ ] 语音面试支持更多 TTS 音色
 
 
 ## 效果展示
+
+> 以下截图来自上游项目的示例图，界面细节以实际运行为准。
 
 ### 简历与面试
 
@@ -220,7 +227,7 @@ Skill 出题 + JD 解析：
 ## 项目结构
 
 ```
-interview-guide/
+career-copilot/
 ├── app/                              # 后端应用
 │   ├── src/main/java/interview/guide/
 │   │   ├── App.java                  # 主启动类
@@ -230,9 +237,12 @@ interview-guide/
 │   │   │   ├── aspect/               # RateLimitAspect + Redis Lua 限流
 │   │   │   ├── async/                # Redis Stream 生产者/消费者模板
 │   │   │   ├── config/               # CORS、S3、OpenAPI、Jackson 等配置
+│   │   │   ├── constant/             # 业务常量
 │   │   │   ├── evaluation/           # 文字/语音共用的统一评估引擎
 │   │   │   ├── exception/            # 业务异常与全局异常处理
-│   │   │   └── result/               # 统一响应 Result<T>
+│   │   │   ├── model/                # 通用模型
+│   │   │   ├── result/               # 统一响应 Result<T>
+│   │   │   └── transaction/          # 事务相关工具
 │   │   ├── infrastructure/           # 基础设施
 │   │   │   ├── export/               # PDF 导出
 │   │   │   ├── file/                 # 文件解析、校验、清洗、S3 存储
@@ -241,12 +251,16 @@ interview-guide/
 │   │   └── modules/                  # 业务模块
 │   │       ├── interview/            # 模拟面试模块
 │   │       ├── interviewschedule/    # 面试安排模块
+│   │       ├── jdmatch/              # JD 匹配分析模块
 │   │       ├── knowledgebase/        # 知识库模块
 │   │       ├── llmprovider/          # 多模型 Provider 与语音配置
 │   │       ├── resume/               # 简历模块
 │   │       └── voiceinterview/       # 语音面试模块
 │   └── src/main/resources/
 │       ├── application.yml           # 应用配置
+│       ├── db/migration/             # Flyway 数据库迁移脚本
+│       ├── fonts/                    # PDF 导出中文字体（朱雀仿宋）
+│       ├── logback-spring.xml        # 日志配置（UTF-8）
 │       ├── prompts/                  # AI 提示词模板（StringTemplate）
 │       ├── scripts/                  # Redis Lua 脚本
 │       ├── skills/                   # 面试 Skill 定义和参考题库
@@ -264,8 +278,8 @@ interview-guide/
 │   └── vite.config.ts
 │
 ├── docker-compose.yml                # 完整部署：前端 + 后端 + PostgreSQL + Redis + MinIO
-├── docker-compose.dev.yml            # 本地开发依赖：PostgreSQL + Redis + RustFS
-├── docs/                             # 架构设计与改造记录
+├── docker-compose.dev.yml            # 本地开发依赖：PostgreSQL + Redis + RustFS（支持热更新）
+├── docs/                             # 架构设计文档与语音面试 E2E 测试设计
 ├── .env.example                      # 环境变量示例
 └── README.md
 ```
@@ -286,19 +300,21 @@ interview-guide/
 ### 1. 克隆项目
 
 ```bash
-git clone https://github.com/Snailclimb/interview-guide.git
-cd interview-guide
+# 从上游仓库克隆（或替换为你的仓库地址），并指定本地目录名为 career-copilot
+git clone https://github.com/Snailclimb/interview-guide.git career-copilot
+cd career-copilot
 ```
 
 ### 2. 配置环境变量
 
-推荐复制 `.env.example` 为 `.env`，后端 `bootRun` 会自动读取根目录 `.env`。最少需要填写 `AI_BAILIAN_API_KEY`，用于 DashScope 文本模型、ASR 和 TTS：
+推荐复制 `.env.example` 为 `.env`，后端 `bootRun` 会自动读取根目录 `.env`。最少需要填写 `AI_BAILIAN_API_KEY`（DashScope 文本模型、ASR 和 TTS 共用）和 `APP_AI_CONFIG_ENCRYPTION_KEY`（Provider API Key 加密密钥）：
 
 ```bash
 cp .env.example .env
 
 # 编辑 .env
 # AI_BAILIAN_API_KEY=your_dashscope_api_key
+# APP_AI_CONFIG_ENCRYPTION_KEY=your_random_long_secret
 # AI_MODEL=qwen3.5-flash
 ```
 
@@ -314,20 +330,28 @@ echo 'export AI_BAILIAN_API_KEY=your_api_key' >> ~/.bashrc
 source ~/.bashrc
 ```
 
-### 3. 启动依赖服务（可选）
+### 3. 启动开发环境（可选，Docker 一键 + 热更新）
 
-项目提供了 `docker-compose.dev.yml`，可一键启动 PostgreSQL、Redis、RustFS（S3 兼容存储）三个依赖：
+项目提供了 `docker-compose.dev.yml`，可一键启动全部开发环境：PostgreSQL、Redis、RustFS（S3 兼容存储）+ **后端（Gradle 热更新）** + **前端（Vite HMR 热更新）**。后端/前端源码均以卷挂载进容器，修改代码自动生效，无需手动重启。
 
 ```bash
-# 启动依赖服务
+# 一键启动全部服务（依赖 + 后端 + 前端，支持热更新）
 docker compose -f docker-compose.dev.yml up -d
 
-# 停止依赖服务
+# 只启动基础设施（后端用 ./gradlew :app:bootRun 在宿主机跑）
+docker compose -f docker-compose.dev.yml up -d postgres redis rustfs
+
+# 停止服务
 docker compose -f docker-compose.dev.yml down
 
 # 停止并清除数据
 docker compose -f docker-compose.dev.yml down -v
 ```
+
+> **热更新说明**：
+> - 后端：源码变化 → Gradle continuous build 自动重新编译并重启（首次启动需下载依赖，较慢）。
+> - 前端：源码变化 → Vite HMR 浏览器实时刷新；API 请求在容器内经 `app:8080` 代理转发。
+> - Windows 下 Docker 绑定挂载若出现热更新不生效，已内置轮询兜底（`GRADLE_OPTS=-Dorg.gradle.vfs.watch=false` / `CHOKIDAR_USEPOLLING=true`）。
 
 如果你之前已经启动过旧版本容器，拉取新代码后建议确认端口映射是否真的生效：
 
@@ -352,7 +376,7 @@ docker compose -f docker-compose.dev.yml up -d --force-recreate postgres redis
 
 | 服务         | 地址             | 账号            | 密码            |
 | ------------ | ---------------- | --------------- | --------------- |
-| PostgreSQL   | `localhost:5432` | `postgres`      | `123456`        |
+| PostgreSQL   | `localhost:5432` | `postgres`      | `060504`        |
 | Redis        | `localhost:6379` | -               | -               |
 | RustFS 控制台 | `localhost:9001` | `rustfsadmin`   | `rustfsadmin`   |
 
@@ -361,6 +385,10 @@ docker compose -f docker-compose.dev.yml up -d --force-recreate postgres redis
 > **IDEA Docker Debug 提示**：如果在 macOS 上使用 IntelliJ IDEA 的 Docker 调试方式启动后端，遇到 `mounts denied: The path /Applications/IntelliJ IDEA.app/Contents/lib is not shared from the host`，请在 Docker Desktop 的 `Settings -> Resources -> File Sharing` 中加入 `/Applications/IntelliJ IDEA.app/Contents/lib`（或整个 `/Applications/IntelliJ IDEA.app`）以及当前项目目录，然后重启 Docker/IDEA 后再运行。普通 `./gradlew :app:bootRun` 和 `docker compose` 启动不需要这个额外共享路径。
 
 ### 4. 启动应用
+
+> **方式一（推荐，Docker 一键 + 热更新）**：直接执行上面的 `docker compose -f docker-compose.dev.yml up -d`，后端与前端容器会一起启动，代码修改自动热更新。前端入口 `http://localhost:5173`；后端 API 宿主访问 `http://localhost:8081`（容器内部端口为 8080，前端容器经 `app:8080` 代理转发）。
+
+> **方式二（宿主机直跑，适合调试）**：
 
 **后端：**
 
@@ -386,7 +414,7 @@ pnpm dev
 
 本项目提供了完整的 Docker 支持，可以一键启动所有服务（前后端、数据库、中间件）。
 
-Docker Compose 编排了 6 个服务：PostgreSQL（pgvector）、Redis、MinIO（S3 兼容存储）、MinIO Bucket 初始化、Spring Boot 后端、React 前端（Nginx）。数据通过 Docker 命名卷持久化，`docker-compose down` 不会丢失数据。
+Docker Compose 编排了 6 个服务：PostgreSQL（pgvector）、Redis、MinIO（S3 兼容存储）、MinIO Bucket 初始化、Spring Boot 后端、React 前端（Nginx）。数据通过 Docker 命名卷持久化，`docker compose down` 不会丢失数据。
 
 ### 1. 前置准备
 
@@ -397,7 +425,7 @@ Docker Compose 编排了 6 个服务：PostgreSQL（pgvector）、Redis、MinIO�
 
 在项目根目录下执行：
 
-`.env.example` 中的 PostgreSQL、Redis、MinIO 已与 `docker-compose.yml` 对齐（数据库用户 `postgres` / 密码 `password`，MinIO `minioadmin` / `minioadmin`）。复制为 `.env` 后主要填写 `AI_BAILIAN_API_KEY`；若你曾在旧版本中使用过不同的库密码或对象存储密钥，请同步修改 `.env`，必要时重建 Postgres 卷以免旧数据与密码不一致。
+`.env.example` 中的 PostgreSQL、Redis、MinIO 已与 `docker-compose.yml` 对齐（数据库用户 `postgres` / 密码 `password`，MinIO `minioadmin` / `minioadmin`）。复制为 `.env` 后主要填写 `AI_BAILIAN_API_KEY` 与 `APP_AI_CONFIG_ENCRYPTION_KEY`；若你曾在旧版本中使用过不同的库密码或对象存储密钥，请同步修改 `.env`，必要时重建 Postgres 卷以免旧数据与密码不一致。
 
 ```bash
 # 1. 复制环境变量配置文件
@@ -415,7 +443,7 @@ cp .env.example .env
 # APP_INTERVIEW_EVALUATION_BATCH_SIZE=8   # 回答评估分批大小（默认 8）
 
 # 3. 构建并启动所有服务
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
 > **仅启动依赖服务**：如果只想本地开发调试（用 `./gradlew :app:bootRun` 启动后端），可以只启动基础设施：`docker compose up -d postgres redis minio createbuckets`。将 `.env.example` 复制为 `.env` 并填写 `AI_BAILIAN_API_KEY` 即可，默认账号与 `docker-compose.yml` 一致；Bucket 会由初始化任务或应用启动检查自动创建。
@@ -438,19 +466,19 @@ docker-compose up -d --build
 
 ```bash
 # 查看服务状态
-docker-compose ps
+docker compose ps
 
 # 查看后端日志
-docker-compose logs -f app
+docker compose logs -f app
 
 # 拉取新代码后重新构建部署
-docker-compose up -d --build
+docker compose up -d --build
 
 # 停止并移除所有服务（数据保留在 Docker 卷中）
-docker-compose down
+docker compose down
 
 # 停止服务并清除数据卷（慎用，会删除数据库和文件）
-docker-compose down -v
+docker compose down -v
 
 # 清理无用镜像（构建产生的中间层）
 docker image prune -f
@@ -460,7 +488,7 @@ docker image prune -f
 
 | 用户角色        | 使用场景                               |
 | --------------- | -------------------------------------- |
-| **求职者**      | 上传简历获取分析建议，进行模拟面试练习 |
+| **求职者**      | 上传简历获取分析建议，针对目标 JD 检测匹配度，进行模拟面试练习 |
 | **HR/招聘人员** | 批量分析简历，评估候选人能力           |
 | **培训机构**    | 提供面试培训服务，管理知识库资源       |
 
@@ -506,7 +534,7 @@ spring:
 
 不需要。数据库 schema 已接入 Flyway，后端应用启动时会自动执行 `app/src/main/resources/db/migration/` 下的迁移，并记录到 `flyway_schema_history`。
 
-当前项目通过 `V1__init_schema.sql` 支持空库初始化，后续版本通过增量迁移演进；Hibernate `ddl-auto` 只做 `validate` 校验。测试环境使用 H2，默认关闭 Flyway。
+当前项目通过 `V1__init_schema.sql` 支持空库初始化，后续版本通过增量迁移演进（如 `V20260722__*`、`V20260808__add_resume_versions.sql` 等）；Hibernate `ddl-auto` 只做 `validate` 校验。测试环境使用 H2，默认关闭 Flyway。
 
 ### Q: 启动时报 `Connection to localhost:5432 refused` 怎么办？
 
@@ -543,7 +571,7 @@ docker compose -f docker-compose.dev.yml up -d --force-recreate postgres redis
 
 ### Q: PDF 导出失败或中文显示异常？
 
-项目已内置中文字体（珠圆玉润仿宋），支持跨平台导出。如遇到问题，请检查：
+项目已内置中文字体（朱雀仿宋 ZhuqueFangsong），支持跨平台导出。如遇到问题，请检查：
 - 字体文件是否存在：`app/src/main/resources/fonts/ZhuqueFangsong-Regular.ttf`
 - 检查日志中的字体加载信息
 - 确认 iText 依赖是否正确

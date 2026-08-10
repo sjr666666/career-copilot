@@ -28,3 +28,21 @@ frontend/test-results/
 frontend/playwright-report/
 /.agents
 skills-lock.json
+
+# WorkBuddy 项目数据（记忆、技能等，不纳入版本控制）
+/.workbuddy
+
+# Gradle 缓存与备份
+/.gradle-home
+/.gradle.bak
+
+# 构建日志与临时输出
+*.log
+node_procs.txt
+frontend/vite.config.ts.timestamp-*.mjs
+
+# pnpm 缓存
+frontend/.pnpm-store/
+
+# 本地个人脚本（引用本机绝对路径，不随仓库分发）
+/scripts/edit_resume.py

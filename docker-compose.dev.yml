@@ -1,7 +1,18 @@
-# 本地开发依赖服务
-# 用法：docker compose -f docker-compose.dev.yml up -d
-# 停止：docker compose -f docker-compose.dev.yml down
-# 清除数据：docker compose -f docker-compose.dev.yml down -v
+# =============================================
+# 本地开发环境（一键启动，支持前后端热更新）
+# 用法：
+#   一键启动全部服务（依赖 + 后端 + 前端）：
+#     docker compose -f docker-compose.dev.yml up -d
+#   只启动基础设施（后端用 ./gradlew :app:bootRun 在宿主机跑）：
+#     docker compose -f docker-compose.dev.yml up -d postgres redis rustfs
+#   查看日志：docker compose -f docker-compose.dev.yml logs -f app
+#   停止：docker compose -f docker-compose.dev.yml down
+#   清除数据：docker compose -f docker-compose.dev.yml down -v
+#
+# 热更新说明：
+#   - 后端 app：绑定挂载源码 + Gradle continuous build（源码变化自动重新编译并重启）
+#   - 前端 frontend：绑定挂载源码 + Vite HMR（浏览器无刷新热更新）
+# =============================================
 
 services:
   postgres:
@@ -9,7 +20,7 @@ services:
     container_name: interview-postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-123456}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-060504}
       POSTGRES_DB: ${POSTGRES_DB:-interview_guide}
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -55,6 +66,87 @@ services:
       timeout: 3s
       retries: 5
 
+  # -----------------------------------------------------
+  # 后端应用（热更新：源码变化 → Gradle 自动重新编译并重启）
+  # 首次启动较慢（需下载依赖），之后利用 gradle_home 卷缓存
+  # -----------------------------------------------------
+  app:
+    image: eclipse-temurin:25-jdk
+    container_name: interview-app
+    working_dir: /workspace
+    volumes:
+      - ./gradlew:/workspace/gradlew
+      - ./gradle.properties:/workspace/gradle.properties
+      - ./settings.gradle:/workspace/settings.gradle
+      - ./gradle:/workspace/gradle
+      - ./app:/workspace/app
+      - gradle_home:/root/.gradle
+    environment:
+      # JVM 时区：默认容器 UTC 会导致 LocalDateTime 落库为 UTC 时刻，
+      # 前端再按本地时区解析会出现 8 小时偏差。
+      # eclipse-temurin 镜像默认无 tzdata，TZ 环境变量不生效，
+      # 改用 GRADLE_OPTS 传 -Duser.timezone 给 Gradle daemon 和 bootRun 的 JVM。
+      TZ: Asia/Shanghai
+      GRADLE_OPTS: "-Duser.timezone=Asia/Shanghai"
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: interview_guide
+      POSTGRES_USER: postgres
+      # Keep in sync with the initialized local postgres volume.
+      POSTGRES_PASSWORD: "060504"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      APP_STORAGE_ENDPOINT: http://rustfs:9000
+      APP_STORAGE_ACCESS_KEY: rustfsadmin
+      APP_STORAGE_SECRET_KEY: rustfsadmin
+      APP_STORAGE_BUCKET: interview-guide
+      APP_STORAGE_REGION: us-east-1
+      AI_BAILIAN_API_KEY: ${AI_BAILIAN_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-qwen3.5-flash}
+      APP_AI_CONFIG_ENCRYPTION_KEY: ${APP_AI_CONFIG_ENCRYPTION_KEY:-change_me_provider_api_key_encryption_key}
+      APP_INTERVIEW_FOLLOW_UP_COUNT: ${APP_INTERVIEW_FOLLOW_UP_COUNT:-1}
+      APP_INTERVIEW_EVALUATION_BATCH_SIZE: ${APP_INTERVIEW_EVALUATION_BATCH_SIZE:-8}
+    # 容器重启时先清理失效 Gradle daemon 注册（gradle_home 卷里累积的 daemon 状态每次都会被判定失效，
+    # 触发 "X busy Daemons could not be reused" 反复探测），再启动 bootRun。
+    command: >
+      sh -c "rm -rf /root/.gradle/daemon &&
+             exec ./gradlew :app:bootRun --continuous"
+    ports:
+      # 8080 may be occupied by another local service; keep container port 8080.
+      - "8081:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rustfs:
+        condition: service_healthy
+
+  # -----------------------------------------------------
+  # 前端应用（热更新：Vite HMR，浏览器实时刷新）
+  # node_modules 使用命名卷，避免宿主机(Windows)依赖污染容器
+  # -----------------------------------------------------
+  frontend:
+    image: node:22-alpine
+    container_name: interview-frontend
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    environment:
+      # Windows 绑定挂载下 inotify 事件不稳定，强制 chokidar 轮询保证 HMR 生效
+      CHOKIDAR_USEPOLLING: "true"
+      # 容器内通过服务名访问后端
+      VITE_API_PROXY_TARGET: http://app:8080
+    command: >
+      sh -c "npm i -g pnpm@10.26.2 &&
+             pnpm install --config.package-manager-strict=false &&
+             pnpm build && pnpm preview --host 0.0.0.0 --port 5173"
+    ports:
+      - "5173:5173"
+    depends_on:
+      - app
+
 # 首次启动后，浏览器访问 http://localhost:9001
 # 使用 ${RUSTFS_ACCESS_KEY} / ${RUSTFS_SECRET_KEY} 登录，手动创建名为 interview-guide 的 bucket
 
@@ -62,3 +154,5 @@ volumes:
   postgres_data:
   redis_data:
   rustfs_data:
+  gradle_home:
+  frontend_node_modules:

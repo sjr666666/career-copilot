@@ -113,12 +113,21 @@ tasks.named('test') {
 // 同时确保 JVM 使用 UTF-8 编码
 tasks.named('bootRun') {
     // JVM 编码配置（stdout/stderr：JDK 18+，避免控制台 PrintStream 与 Logback UTF-8 不一致）
+    // 启动优化参数（仅 dev 的 bootRun 生效，生产 jar 部署不受影响）：
+    //   -XX:TieredStopAtLevel=1  只编译到 C1，大幅减少启动期 JIT 编译开销（dev 运行期性能可接受）
+    //   -XX:+UseSerialGC         启动期最快的单线程 GC（dev 环境并发低）
+    //   -XX:CICompilerCount=2    限制编译线程数，避免 20 核下编译线程互相竞争拖慢启动
+    //   -Dspring.jmx.enabled=false 省去 JMX 初始化
     jvmArgs = [
             '-Dfile.encoding=UTF-8',
             '-Dconsole.encoding=UTF-8',
             '-Dstdout.encoding=UTF-8',
             '-Dstderr.encoding=UTF-8',
-            '--enable-native-access=ALL-UNNAMED'
+            '--enable-native-access=ALL-UNNAMED',
+            '-XX:TieredStopAtLevel=1',
+            '-XX:+UseSerialGC',
+            '-XX:CICompilerCount=2',
+            '-Dspring.jmx.enabled=false'
     ]
 
     // 加载 .env 文件

@@ -139,6 +139,12 @@ services:
       createbuckets:
         condition: service_completed_successfully # 等待初始化任务完成
     environment:
+      # JVM 时区：默认容器 UTC 会导致 LocalDateTime 落库为 UTC 时刻，
+      # 前端再按本地时区解析会出现 8 小时偏差。
+      # eclipse-temurin 镜像默认无 tzdata，TZ 环境变量不生效，
+      # 改用 JAVA_TOOL_OPTIONS 传 -Duser.timezone 给应用 JVM（生产入口是 java -jar）。
+      TZ: Asia/Shanghai
+      JAVA_TOOL_OPTIONS: "-Duser.timezone=Asia/Shanghai"
       # === 数据库连接 ===
       # 使用服务名 'postgres' 作为主机名，Docker 内部 DNS 会自动解析
       POSTGRES_HOST: postgres
